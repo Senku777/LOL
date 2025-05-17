@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelos para usuarios y autenticación
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  password      String
+  role          Role      @default(CLIENTE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  subscription  Subscription?
+  orders        Order[]
+  bookings      Booking[]
+  reviews       Review[]
+}
+
+enum Role {
+  ADMIN
+  EMPLEADO
+  CLIENTE
+}
+
+// Modelos para productos
+model Product {
+  id            String    @id @default(cuid())
+  name          String
+  description   String
+  price         Float
+  oldPrice      Float?
+  category      String
+  stock         Int
+  minStock      Int
+  isSubscription Boolean   @default(false)
+  subscriptionFrequency String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  orderItems    OrderItem[]
+}
+
+// Modelos para pedidos
+model Order {
+  id            String    @id @default(cuid())
+  userId        String
+  status        OrderStatus
+  shippingAddress Json
+  paymentDetails Json
+  subtotal      Float
+  shippingCost  Float
+  total         Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  user          User      @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+model OrderItem {
+  id            String    @id @default(cuid())
+  orderId       String
+  productId     String
+  name          String
+  price         Float
+  quantity      Int
+  
+  // Relaciones
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product   @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// Modelos para suscripciones
+model Subscription {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  planId        String
+  planName      String
+  status        SubscriptionStatus
+  startDate     DateTime
+  nextBillingDate DateTime
+  price         Float
+  frequency     String
+  
+  // Relaciones
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+// Modelos para tours disponibles
+model Tour {
+  id                Int       @id @default(autoincrement())
+  name              String
+  description       String
+  date              DateTime
+  time              String
+  duration          Int
+  maxParticipants   Int
+  currentParticipants Int     @default(0)
+  guide             String
+  status            TourStatus
+  category          TourCategory
+  price             Float
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relaciones
+  bookings          Booking[]
+  reviews           Review[]
+}
+
+enum TourStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum TourCategory {
+  GALLINAS
+  HUEVOS
+  SOSTENIBILIDAD
+  GENERAL
+}
+
+model Booking {
+  id            String    @id @default(cuid())
+  tourId        Int
+  userId        String
+  status        BookingStatus
+  participants  Int       @default(1)
+  totalPrice    Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  tour          Tour      @relation(fields: [tourId], references: [id])
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tourId])
+  @@index([userId])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// Modelos para reseñas
+model Review {
+  id            String    @id @default(cuid())
+  userId        String
+  tourId        Int
+  rating        Int
+  comment       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tour          Tour      @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tourId])
+}
+
+// Modelos para blog
+model BlogPost {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  content       String
+  excerpt       String?
+  author        String
+  category      String
+  image         String?
+  published     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Modelos para proveedores
+model Supplier {
+  id            String    @id @default(cuid())
+  name          String
+  contactName   String
+  email         String
+  phone         String
+  address       String
+  category      String
+  status        String
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
